@@ -1,0 +1,12 @@
+pandas
+python-dotenv
+influxdb-client
+streamlit==1.45.1
+streamlit-elements
+streamlit-nested-layout==0.1.4
+altair
+plotly
+bokeh==3.7.2
+streamlit-bokeh
+loguru==0.7.3
+pytest==8.3.5

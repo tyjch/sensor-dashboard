@@ -1,0 +1,5 @@
+from(bucket: "thermometer")
+  |> range(start: -30d)
+  |> filter(fn: (r) => r["_measurement"] == "Vitals")
+  |> last()
+  |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")

@@ -1,0 +1,8 @@
+thresholds = from(bucket: "thermometer")
+  |> range(start: 0, stop: now())
+  |> filter(fn: (r) => r["_measurement"] == "Threshold")
+  |> filter(fn: (r) => r["_field"] == "limit")
+  |> last()
+  |> drop(columns: ["_start", "_stop"])
+  |> group()
+  |> sort(columns: ["_value"])
