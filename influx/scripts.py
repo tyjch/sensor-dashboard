@@ -42,6 +42,7 @@ def run_script(file_name, **kwargs):
 def get_latest_temperature():
   result = run_script('latest_temperature.flux')
   if isinstance(result, pd.DataFrame):
+    st.dataframe(result)
     st.session_state['data.temperature.latest'] = result['temperature_biased'].iloc[-1]
     st.session_state['data.bias.latest']        = result['bias'].iloc[-1]
     st.session_state['data.measurement.latest'] = pd.to_datetime(result['_time'].iloc[-1])
