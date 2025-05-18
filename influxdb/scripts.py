@@ -30,9 +30,6 @@ def run_script(file_name, **kwargs):
   template = Template(load_script_template(file_name=file_name))
   script   = template.substitute(**kwargs)
   
-  for v in (client.url, client.token, client.org):
-    logger.debug(v)
-  
   with client:
     try:
       return query_api.query_data_frame(script)

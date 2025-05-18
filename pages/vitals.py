@@ -69,21 +69,6 @@ DEFAULT_VITALS = MappingProxyType({
 })
 
 
-@dataclass
-class VitalSign:
-    """Data class representing a single vital sign measurement."""
-    value: float
-    changed: bool = False
-
-
-@dataclass
-class BloodPressure:
-    """Data class representing blood pressure measurement."""
-    systolic: int
-    diastolic: int
-    changed: bool = False
-
-
 class VitalsRepository:
     """Data access layer for vitals information."""
     
@@ -102,8 +87,15 @@ class VitalsRepository:
             
             if isinstance(result, pd.DataFrame) and not result.empty:
                 latest_record = result.iloc[-1]
-                return {key: latest_record.get(key, DEFAULT_VITALS[key]) 
-                       for key in DEFAULT_VITALS.keys()}
+                # Safely extract values with type checking
+                vitals = {}
+                for key in DEFAULT_VITALS.keys():
+                    value = latest_record.get(key)
+                    if pd.notna(value) and value is not None:
+                        vitals[key] = float(value) if key == 'temperature' else int(value)
+                    else:
+                        vitals[key] = DEFAULT_VITALS[key]
+                return vitals
                 
         except Exception as e:
             st.error(f"Error loading vitals from database: {e}")
@@ -232,8 +224,18 @@ class VitalsSession:
     def _safely_set_vital(key: str, value: Any, default: Any, type_converter: type) -> None:
         """Safely set a vital sign value with type conversion and error handling."""
         try:
-            st.session_state[key] = type_converter(value if value is not None else default)
-        except (ValueError, TypeError):
+            if value is not None and pd.notna(value):
+                converted_value = type_converter(value)
+                # Additional validation for reasonable ranges
+                if key == SessionKeys.TEMPERATURE and (converted_value < 80 or converted_value > 120):
+                    st.session_state[key] = default
+                elif key == SessionKeys.HEART_RATE and (converted_value < 0 or converted_value > 300):
+                    st.session_state[key] = default
+                else:
+                    st.session_state[key] = converted_value
+            else:
+                st.session_state[key] = default
+        except (ValueError, TypeError, OverflowError):
             st.session_state[key] = default
     
     @staticmethod
@@ -261,6 +263,54 @@ class VitalsSession:
         st.session_state[SessionKeys.OXYGEN_SATURATION] = vitals_data['oxygen_saturation']
         
         # Reset change tracking flags
+        VitalsSession._initialize_change_flags()
+    
+    @staticmethod
+    def reset_to_original_values() -> None:
+        """Reset all vitals to their original loaded values from the database."""
+        # Get fresh data from database (bypass cache to ensure we get original values)
+        VitalsRepository.get_latest.clear()  # Clear the cache
+        original_vitals = VitalsRepository.get_latest()
+        
+        # Reset all vital values to original database values
+        VitalsSession._safely_set_vital(
+            SessionKeys.TEMPERATURE, 
+            original_vitals.get('temperature'), 
+            DEFAULT_VITALS['temperature'], 
+            float
+        )
+        VitalsSession._safely_set_vital(
+            SessionKeys.HEART_RATE, 
+            original_vitals.get('heart_rate'), 
+            DEFAULT_VITALS['heart_rate'], 
+            int
+        )
+        VitalsSession._safely_set_vital(
+            SessionKeys.RESPIRATION_RATE, 
+            original_vitals.get('respiration_rate'), 
+            DEFAULT_VITALS['respiration_rate'], 
+            int
+        )
+        VitalsSession._safely_set_vital(
+            SessionKeys.OXYGEN_SATURATION, 
+            original_vitals.get('oxygen_saturation'), 
+            DEFAULT_VITALS['oxygen_saturation'], 
+            int
+        )
+        VitalsSession._safely_set_vital(
+            SessionKeys.BP_SYSTOLIC, 
+            original_vitals.get('systolic'), 
+            DEFAULT_VITALS['systolic'], 
+            int
+        )
+        VitalsSession._safely_set_vital(
+            SessionKeys.BP_DIASTOLIC, 
+            original_vitals.get('diastolic'), 
+            DEFAULT_VITALS['diastolic'], 
+            int
+        )
+        
+        # Reset all change tracking flags
         VitalsSession._initialize_change_flags()
 
 
@@ -290,8 +340,23 @@ class VitalsStyling:
             opacity = '1.0' if changed else '0.5'
             filter_value = 'none' if changed else 'grayscale(30%)'
             
+            # Fix the container key reference
+            container_key_name = container_name.upper().replace('_', '_')
+            if hasattr(ContainerKeys, container_key_name):
+                container_key = getattr(ContainerKeys, container_key_name)
+            else:
+                # Fallback mapping
+                key_mapping = {
+                    'temperature': ContainerKeys.TEMPERATURE,
+                    'heart_rate': ContainerKeys.HEART_RATE,
+                    'respiration': ContainerKeys.RESPIRATION,
+                    'oxygen_saturation': ContainerKeys.OXYGEN_SATURATION,
+                    'blood_pressure': ContainerKeys.BLOOD_PRESSURE
+                }
+                container_key = key_mapping.get(container_name, f'container.{container_name}')
+            
             style = f"""
-            .st-key-{ContainerKeys.__dict__[container_name.upper()].replace('.', '-')} {{
+            .st-key-{container_key.replace('.', '-')} {{
                 opacity: {opacity};
                 filter: {filter_value};
                 transition: opacity {Config.CSS_TRANSITION_DURATION} ease, 
@@ -347,7 +412,27 @@ class VitalsUI:
         with st.container(key=container_key):
             VitalsUI.render_title(label, icon)
             
-            default_value = st.session_state[session_key]
+            # Ensure we have a valid default value
+            default_value = st.session_state.get(session_key)
+            if default_value is None or pd.isna(default_value):
+                # Use default from our constants
+                if session_key == SessionKeys.TEMPERATURE:
+                    default_value = DEFAULT_VITALS['temperature']
+                elif session_key == SessionKeys.HEART_RATE:
+                    default_value = DEFAULT_VITALS['heart_rate']
+                elif session_key == SessionKeys.RESPIRATION_RATE:
+                    default_value = DEFAULT_VITALS['respiration_rate']
+                elif session_key == SessionKeys.OXYGEN_SATURATION:
+                    default_value = DEFAULT_VITALS['oxygen_saturation']
+                else:
+                    default_value = min_value
+                
+                # Update session state with the default
+                st.session_state[session_key] = default_value
+            
+            # Ensure the default value is within the specified range
+            default_value = max(min_value, min(max_value, default_value))
+            
             value = st.slider(
                 label=label,
                 value=default_value,
@@ -368,10 +453,25 @@ class VitalsUI:
         with st.container(key=ContainerKeys.BLOOD_PRESSURE):
             VitalsUI.render_title('Blood Pressure', ':material/blood_pressure:')
             
-            default_bp = (
-                st.session_state[SessionKeys.BP_DIASTOLIC],
-                st.session_state[SessionKeys.BP_SYSTOLIC]
-            )
+            # Get default values and ensure they're valid
+            diastolic = st.session_state.get(SessionKeys.BP_DIASTOLIC)
+            systolic = st.session_state.get(SessionKeys.BP_SYSTOLIC)
+            
+            if diastolic is None or pd.isna(diastolic):
+                diastolic = DEFAULT_VITALS['diastolic']
+                st.session_state[SessionKeys.BP_DIASTOLIC] = diastolic
+                
+            if systolic is None or pd.isna(systolic):
+                systolic = DEFAULT_VITALS['systolic']
+                st.session_state[SessionKeys.BP_SYSTOLIC] = systolic
+            
+            # Ensure proper order (diastolic should be lower than systolic)
+            if diastolic >= systolic:
+                diastolic = systolic - 20
+                st.session_state[SessionKeys.BP_DIASTOLIC] = diastolic
+            
+            default_bp = (diastolic, systolic)
+            
             bp_values = st.slider(
                 label='Blood Pressure',
                 value=default_bp,
@@ -454,12 +554,35 @@ def main():
     # Apply dynamic styling
     VitalsStyling.inject_dynamic_styles()
     
-    # Regular submit button (no form needed)
-    submitted = st.button(
-        label="Submit Vitals",
-        icon=':material/send:',
-        use_container_width=True
-    )
+    # Check if any vitals have been changed
+    has_changes = any([
+        st.session_state.get(SessionKeys.TEMPERATURE_CHANGED, False),
+        st.session_state.get(SessionKeys.BP_CHANGED, False),
+        st.session_state.get(SessionKeys.HEART_RATE_CHANGED, False),
+        st.session_state.get(SessionKeys.RESPIRATION_RATE_CHANGED, False),
+        st.session_state.get(SessionKeys.OXYGEN_SATURATION_CHANGED, False)
+    ])
+    
+    # Create two columns for buttons
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        # Reset button - only enabled if there are changes
+        reset_clicked = st.button(
+            label="Reset",
+            icon=':material/refresh:',
+            use_container_width=True,
+            disabled=not has_changes
+        )
+    
+    with col2:
+        # Submit button - only enabled if there are changes
+        submitted = st.button(
+            label="Submit Vitals",
+            icon=':material/send:',
+            use_container_width=True,
+            disabled=not has_changes
+        )
     
     if submitted:
         # Prepare data for saving
@@ -474,14 +597,27 @@ def main():
         
         # Save to database
         if VitalsRepository.save(vitals_data):
+            # Reset change tracking flags first
+            VitalsSession.update_vitals_after_save(vitals_data)
+            
+            # Show success messages
             st.success("✅ Vitals saved successfully!")
             st.success(
                 f"Temp: {temp}°F | BP: {bp[1]}/{bp[0]} mmHg | "
                 f"HR: {hr} bpm | RR: {rr}/min | O₂: {o2}%"
             )
-            VitalsSession.update_vitals_after_save(vitals_data)
+            
+            # Force a rerun to update the UI state
+            st.rerun()
         else:
             st.error("❌ Failed to save vitals to database")
+    
+    if reset_clicked:
+        # Reset all vitals to their original loaded values
+        VitalsSession.reset_to_original_values()
+        st.success("🔄 Vitals reset to original values")
+        st.rerun()
 
 
-main()
+if __name__ == "__main__":
+    main()

@@ -23,8 +23,6 @@ def bias():
       max_value = 5.0,
     )
 
-st.session_state
-
 with c1:
   latest_temperature_metric()
 with c2:
