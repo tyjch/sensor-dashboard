@@ -1,6 +1,6 @@
 import streamlit as st
 import plotly.express as px
-from influx.scripts import run_script
+from influxdb.scripts import run_script
 import pandas as pd
 from datetime import datetime, time
 import pytz

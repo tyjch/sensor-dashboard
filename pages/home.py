@@ -3,9 +3,8 @@ import pandas as pd
 import plotly.express as px
 from components.metrics import latest_temperature_metric, latest_measurement_metric
 #from components.line_chart import temperature_history
-from influx.scripts import get_latest_temperature
+from influxdb.scripts import run_script, get_latest_temperature
 from streamlit_elements import elements, mui, html
-from influx.scripts import run_script
 from components.line_chart import temperature_history
 
 st.title('Home')
@@ -24,6 +23,7 @@ def bias():
       max_value = 5.0,
     )
 
+st.session_state
 
 with c1:
   latest_temperature_metric()

@@ -40,9 +40,15 @@ def run_script(file_name, **kwargs):
       logger.error(f'Error running flux script: {e}')
       
 def get_latest_temperature():
-  result = run_script('latest_temperature.flux')
-  if isinstance(result, pd.DataFrame):
-    st.dataframe(result)
-    st.session_state['data.temperature.latest'] = result['temperature_biased'].iloc[-1]
-    st.session_state['data.bias.latest']        = result['bias'].iloc[-1]
-    st.session_state['data.measurement.latest'] = pd.to_datetime(result['_time'].iloc[-1])
+    try:
+        result = run_script('latest_temperature.flux')
+        if isinstance(result, pd.DataFrame) and not result.empty:
+            # Check if columns exist before accessing them
+            if 'temperature_biased' in result.columns:
+                st.session_state['data.temperature.latest'] = result['temperature_biased'].iloc[-1]
+            if 'bias' in result.columns:
+                st.session_state['data.bias.latest'] = result['bias'].iloc[-1]
+            if '_time' in result.columns:
+                st.session_state['data.measurement.latest'] = pd.to_datetime(result['_time'].iloc[-1])
+    except Exception as e:
+        st.error(f"Error getting latest temperature: {e}")

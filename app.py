@@ -1,7 +1,7 @@
 import streamlit as st
 import streamlit_nested_layout
 from datetime import datetime
-from influx.scripts import get_latest_temperature
+from influxdb.scripts import get_latest_temperature
 
 st.set_page_config(
   page_title            = "Temperature Dashboard",

@@ -1,38 +1,3 @@
-/* assets/style.css */
-span[style*="Material Symbols Rounded"] {
-    font-size: 24px !important;
-    vertical-align: middle !important;
-    padding: 5px;
-}
-
-/* Add padding inside form */
-.stForm > div:first-child {
-    padding: 25px;
-}
-
-/* Hide slider tick marks */
-div[data-testid="stSliderTickBarMin"],
-div[data-testid="stSliderTickBarMax"] {
-    display: none !important;
-}
-
-/* Add units to slider thumb values */
-/* Temperature - add °F */
-div[aria-label="Temperature"] div[data-testid="stSliderThumbValue"]::after {
-    content: "°F";
-    margin-left: 2px;
-}
-
-/* Heart Rate - add bpm */
-div[aria-label="Heart Rate"] div[data-testid="stSliderThumbValue"]::after {
-    content: " bpm";
-}
-
-/* Respiration Rate - add /min */
-div[aria-label="Respiration Rate"] div[data-testid="stSliderThumbValue"]::after {
-    content: "/min";
-}
-
 /* Material Icons styling */
 span[style*="Material Symbols Rounded"] {
     font-size: 24px !important;
@@ -69,106 +34,10 @@ div[aria-label="Blood Pressure"] div[data-testid="stSliderThumbValue"]::after {
     content: " mmHg";
 }
 
-/* Material Icons styling */
-span[style*="Material Symbols Rounded"] {
-    font-size: 24px !important;
-    vertical-align: middle !important;
-    padding: 5px;
-}
-
-/* Add padding inside form */
-.stForm > div:first-child {
-    padding: 25px;
-}
-
-/* Hide slider tick marks */
-div[data-testid="stSliderTickBarMin"],
-div[data-testid="stSliderTickBarMax"] {
-    display: none !important;
-}
-
-/* Add units to slider thumb values */
-div[aria-label="Temperature"] div[data-testid="stSliderThumbValue"]::after {
-    content: "°F";
-    margin-left: 2px;
-}
-
-div[aria-label="Heart Rate"] div[data-testid="stSliderThumbValue"]::after {
-    content: " bpm";
-}
-
-div[aria-label="Respiration Rate"] div[data-testid="stSliderThumbValue"]::after {
-    content: "/min";
-}
-
-div[aria-label="Blood Pressure"] div[data-testid="stSliderThumbValue"]::after {
-    content: " mmHg";
-}
-
-/* Material Icons styling */
-span[style*="Material Symbols Rounded"] {
-    font-size: 24px !important;
-    vertical-align: middle !important;
-    padding: 5px;
-}
-
-/* Add padding inside form */
-.stForm > div:first-child {
-    padding: 25px;
-}
-
-/* Hide slider tick marks */
-div[data-testid="stSliderTickBarMin"],
-div[data-testid="stSliderTickBarMax"] {
-    display: none !important;
-}
-
-/* Add units to slider thumb values */
-div[aria-label="Temperature"] div[data-testid="stSliderThumbValue"]::after {
-    content: "°F";
-    margin-left: 2px;
-}
-
-div[aria-label="Heart Rate"] div[data-testid="stSliderThumbValue"]::after {
-    content: " bpm";
-}
-
-div[aria-label="Respiration Rate"] div[data-testid="stSliderThumbValue"]::after {
-    content: "/min";
-}
-
-
-/* Dim entire vital sign containers when at default values */
-/* Target by class name instead of data-testid */
-.st-key-container-temperature:has(div[aria-label="Temperature"][aria-valuenow="97.5"]) {
-    opacity: 0.5;
-    filter: grayscale(30%);
-}
-
-.st-key-container-heart_rate:has(div[aria-label="Heart Rate"][aria-valuenow="55"]) {
-    opacity: 0.5;
-    filter: grayscale(30%);
-}
-
-.st-key-container-respiration:has(div[aria-label="Respiration Rate"][aria-valuenow="12"]) {
-    opacity: 0.5;
-    filter: grayscale(30%);
-}
-
-.st-key-container-oxygen_saturation:has(div[aria-label="O₂ Saturation"][aria-valuetext="95%"]) {
-    opacity: 0.5;
-    filter: grayscale(30%);
-}
-
-.st-key-container-blood_pressure:has(div[aria-label="Blood Pressure"][aria-valuenow="60"]):has(div[aria-label="Blood Pressure"][aria-valuenow="125"]) {
-    opacity: 0.5;
-    filter: grayscale(30%);
-}
-
-/* Smooth transitions */
+/* Smooth transitions for all containers - base styles */
 div[class*="st-key-container-"] {
-    transition: opacity 0.3s ease, filter 0.3s ease;
     padding: 10px;
     border-radius: 8px;
 }
 
+/* Dynamic styles for dimming will be injected by VitalsStyling class */
